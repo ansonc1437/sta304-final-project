@@ -1,0 +1,449 @@
+---
+title: "Factors Determining Personal Health Insurance charges"
+author: "Zhihao Chen"
+date: "April 26th, 2022"
+header-includes:
+  \usepackage{dcolumn}
+  \usepackage{float}
+  \usepackage{rotating}
+  \usepackage{pdflscape}
+  \usepackage{booktabs}
+output:
+  bookdown::pdf_document2:
+    toc: yes
+subtitle: "Replicating ‘Health Insurance Claim Prediction’"
+abstract: "The main aim of this paper was to determine relationship between personal health insurance charges and characteristics of the primary beneficiary of the insured. The demographic factors included; age, BMI, number of dependents and smoking status, while the geographic factor was the region of residence of the primary beneficiary.Cross-sectional data were obtained, and data description and visualizations were conducted to create a better insight into the data. The relationship between the variables was assessed using multiple regression techniques to achieve the aim of the study. Understanding the factors determining personal health insurance is vital for improving health and reducing longstanding differences in healthcare. There is no uniform amount of premium the insured is supposed to pay to the insurer, and the existence of these factors causes the variance in the monthly sum paid. It was found that the variables; age, BMI, smoking status and the number of children positively and significantly help in determining the amount of personal health insurance charges. These factors had a positive impact on the amount of payments. As the units of these variables increases, the amount of health insurance charges increases. Therefore, this study helped create a balanced criteria of determining the fair amount for both the insurer and the insured so that the money paid out will not exceed the money paid in.R-Studio software was used for analysis @R-Studio.\\par \\textbf{Keywords:} linear regression, model, BMI, health."
+
+thanks: 'Code and data are available at: [github.com/ansonc](https://github.com/ansonc1437/sta304-final-project.git.'
+bibliography: references.bib
+---
+
+
+
+
+
+
+
+
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# INTRODUCTION
+
+Personal health insurance is the coverage purchased mainly to protect an individual or a family when they are sick. Personal health insurance cover can be obtained through an employer or government programs such as Medicaid or Medicare. On the other hand, private insurance cover refers to that coverage offered by a private entity instead of the federal government @rampalensemble. There are social determinants affecting the health of the most vulnerable populations. The more an individual's health is risky, the more they are likely to pay more premiums than an individual whose health is considered stable. There are various factors determining personal health insurance charges, and they include; the age of the primary beneficiary, body mass index (BMI), the number of dependents covered by the insurance, region of the beneficiary such as the U.S, sex of the insurance contractor, if the primary beneficiary is smoking. 
+
+There are some considerations an individual ought to advocate for the future premiums to be paid because the insurer takes into account the total premiums paid out incase of the insurance claim. In the United States, there have been efforts to improve the health conditions of its citizens by reconsidering the traditional health care system as the vital driver of the outcomes of health status across all states. This has signified the increased recognition concerning improving and attaining healthy equity that demands border approaches that address economic, social, and environmental factors influencing health. Various researchers argue that health care is vital to health, and most health outcomes are motivated by the underlying factors related to genetics, social environment, and health behaviors of an individual @vigano2000survival. Similarly, other researchers argue that some other health behaviors, such as smoking, are the major drivers of health outcomes. In general, those individuals who did not complete their education are more likely to stay in those environments that are hazardous to their health due to staying in substandard houses.
+
+Understanding the factors determining personal health insurance is vital for improving health as well as reducing longstanding differences in healthcare. There is no uniform amount of premium the insured is supposed to pay to the insurer, and the existence of these factors causes the variance in the monthly sum paid. There is a maximum number the insured is supposed to indicate as the beneficiaries or the dependents of the policy, especially for the family but for the company, the number is dependent on the number of employees. Having a personal health insurance cover has numerous advantages, such as government income tax exemption, especially for the health benefits, as well as a wide range of options related to planning. Equally, an individual with personal health insurance cover is free from the high medical cost incurred by those individuals who don't have medical cover. The insured is likely to pay less for the covered health care before meeting the deductible amounts previously paid as premiums. The insured receives free preventive care such as screenings and routine checkups. @zhang2020prediction
+
+\newpage
+
+# DATA
+
+## DATA Source and introduction
+
+```{r,echo=FALSE,, echo=FALSE,warning=FALSE, include=FALSE}
+library(readxl)
+library(tidyverse) 
+library(latex2exp)
+library(gridExtra)
+library(kableExtra)
+library(ggplot2)
+Health_insurance <- read_excel("Health_insurance.xlsx")
+data=as.data.frame(Health_insurance)
+```
+
+The main aim of this study was to predict the amount of personal health charges based on the primary beneficiary demographic and geographical information. The dataset was obtained from the Kaggle website (https://www.kaggle.com/code/harshinisk/health-insurance-prediction/data). It contained seven variables and 1,338 observations. The individual characteristics contained in the datasheet include; their age, sex, BMI, number of children and smoking status, while the geographical feature was the region of residence of the primary beneficiary. The outcome variable "charges" and the predictor variables (age, BMI and number of children) were continuous, while the variables (sex, region and smoking status) were categorical. Based on these characteristics, an exploratory analysis was done. Finally, a multiple regression model was built to determine the relationship between the factors and predict the amount of health insurance charges.
+I analyzed it using R (R Core Team 2020), and packages tidyverse (Wickham et al. 2019),haven (Wickham and Miller 2020) . I used packages bookdown (Xie 2016), kableExtra (Zhu 2020), finalfit (Harrison, Drake, and Ots 2020), modelsummary (Arel-Bundock 2021), broom (Robinson, Hayes, and Couch 2020) to format the document and referenced Impact Evaluation in Practice (Gertler et al. 2016) to evaluate this experiment. I used Shiny (Chang et al. 2021) for enhancement to display interactive model results.\
+
+
+The dataset consisted of 49.5% females and 50.5% males. This was illustrated in the pie chart below.
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+library(plyr)
+sex = count(data, "sex")
+pcent<- round(100*sex$freq/sum(sex$freq), 1)
+pie(sex$freq, labels = pcent, main = "Comparison based on Gender",col = rainbow(length(sex)))
+legend("topright", c("Female","Male"), cex = 0.8,
+   fill = rainbow(length(sex)))
+```
+
+The youngest respondent was 18 years of age, while the oldest was 64 years old. 
+
+## original data
+
+The  important variables are in the following table.\
+
+```{r,echo=FALSE,meassage=FALSE,warning=FALSE}
+knitr::kable(summary(data[,c(1,2,3,4,5)]),caption = "Summary Table of the important variable")
+```
+
+
+
+## Data EDA
+
+For the body mass index of the participants varied between  15.96 kg/m2 and 53.13 kg/m2. Most of the respondents came from the south east while the participants from the other regions were equally sampled as indicated in the plot below;
+
+```{r,echo=FALSE,meassage=FALSE,warning=FALSE}
+#library(psych)
+Regions= count(data, "region")
+ggplot(Regions, aes(x=region, y=freq, fill=region)) +
+  geom_bar(stat="identity")+ geom_text(aes(label = freq), size = 3, hjust = 0.5, vjust = 3, position =     "stack")+ ggtitle("Comparison of participants based on region of residence") + theme_minimal()
+```
+
+The dataset consisted of 79.5% non-smokers with only 20.5% of the respondents were smokers. The illustration was as below;
+
+```{r,echo=FALSE,echo=FALSE,meassage=FALSE,warning=FALSE}
+smoker<- count(data, "smoker")
+pcent1<- round(100*smoker$freq/sum(smoker$freq), 1)
+pie(smoker$freq, labels = pcent1, main = "Distribution based on smoking status",col = rainbow(length(smoker)))
+legend("topright", c("No","Yes"), cex = 0.8,
+   fill = rainbow(length(smoker)))
+```
+
+From the bar chart below, most of the participants had no children.
+
+```{r,echo=FALSE,meassage=FALSE,warning=FALSE}
+children= count(data, "children")
+ggplot(children, aes(x=children, y=freq, fill=children)) +
+  geom_bar(stat="identity")+ geom_text(aes(label = freq), size = 2, hjust = 0.5, vjust = 3, position ="stack")+ggtitle("Distribution of respondents based on number of children")+theme_minimal()
+```
+
+As observed, the charges distributions in different regions and sex are different. So region and sex may be two potential predictors.\
+
+```{r, fig.height=5, ,echo=FALSE,meassage=FALSE,warning=FALSE,fig.cap="Charges distribution in different regions and sex"}
+#plot
+data%>%
+ggplot(aes(x =region, y =charges, fill = sex,color=sex)) + geom_point(pch = 25)+theme_minimal()
+  
+
+
+
+
+```
+
+
+
+# MODEL
+
+Exploratory data analysis was conducted initially involving the investigations of the data to discover the patterns and checking for anomalies. These were achieved with the help of summary statistics and graphical representations. This process helps unearth the main characteristics of the data.
+[@weisberg2005applied],  [@su2012linear],  [@uyanik2013study]
+The dataset was first split into train and test sets. The training set was used to fit the model while the testing set was used to evaluate the model performance and make predictions. A multiple linear regression was considered 
+as it analyzes the relationship between a single dependent variable and several independent variables.This aligned with this study varibales as there was one response variable and six independent variables.
+
+The multiple regression model was formulated as follows:\
+$Y_i=X_i \beta+\epsilon_i$
+Where:
+$Y_i$:dependent variable.\
+$X_i$:explanatory variables\
+$\epsilon$ follows normal with mean 0 and variance $sigma^2$.\
+
+The detailed steps are as follows:
+
+##	EDA
+
+First of all, all the EDA are done to see the relationship between response and the predictors. And the numerical summary of the numerical variables is given. And from the scatter plot, we know which predictors should be added in the model at first. And also the common sense also could tell us which variables should be added.
+
+##	Automated selection
+
+Using stepwise selection by BIC and AIC, the system will choose a model for us. And this model may not satisfy the model assumption and we need to check if it pass all the model checking conditions.
+
+## 	Model checking
+
+For residual plot, we need the residual plot to be no pattern. There are two kinds of residual plot. The first is between residuals and predictors. The second is between residual and fitted values. This will lead that the model is constant variance. Besides, the model is linear. If there is no cluster pattern in the residual plot, then the observations are independent.Then by normal QQ plot, if the QQ plot behaves like a straight line. This means the normality is ok for our model. And then leverage points, outlier and influential points are calculated and they are analysis in the limitation parts. At the final model, we check the VIF to see if there are correlations between predictors.
+[@yan2009linear], [@tranmer2008multiple],[@olive2017multiple]
+
+## 	Model validation
+
+Further, we want to often build a model that could be used for predictions on data that is independent of the data we have already collected. We want to ensure that the model we land on as preferred is a good model not only on the sample we have collected, but on others from the same population. For the estimated coefficients, we can expect some differences, but we want to make sure the differences are not much bigger than the standard error of each coefficient in the training data. If we do not notice any substantial changes, then we can safely say your model has been validated.
+[@gregoire2014multiple]
+
+
+# RESULTS
+
+
+## Exploratory data analysis
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+library(psych)
+pairs.panels(data, 
+             method = "pearson", # correlation method
+             hist.col = "#00AFBB",
+             density = TRUE,  # show density plots
+             )
+```
+
+The above plot was used to access the association between the predictors and the outcome. As age and body mass index increase, the amount of health insurance charges also increases. Based on the correlation coefficients, there seemed to be a negligible relationship between the charges and the explanatory variables; sex, number of children and region residence.
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+library(cowplot)
+#install.packages("WVPlots")
+library(WVPlots)
+ggplot(data, aes(smoker, charges)) +
+  geom_jitter(aes(color = smoker), alpha = 0.7) +
+  theme_light()+ggtitle("Relationship between smoking and insurance charges")
+```
+
+
+
+
+
+
+
+## Fitting Multiple regression model
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+library(MASS)
+train<- round(0.8 * nrow(data))
+train_ind <- sample(1:nrow(data), train)
+train_set <- data[train_ind, ]
+test_set <- data[-train_ind, ]
+#install.packages("stargazer")
+library(stargazer)
+Reg1<-lm(charges~.,data=train_set)
+#stargazer(Reg1, 
+         # title="Regression Results", type="text", 
+          #df=FALSE, digits=3)
+
+library("broom.mixed")
+kbl(broom::tidy(Reg1)[,], caption = "Summary Table of Initial Model ", 
+      digits = 3, format = "markdown", align = "ccccc", padding= 3) 
+
+
+
+```
+
+
+
+
+From the initial model, the variable sex and region were found to be statistically insignificant. Therefore, the best model could be built by dropping the insignificant variables as conducted below;
+
+```{r,echo=FALSE}
+library(MASS)
+Final_model<- lm(charges~age+bmi+children+smoker,data=train_set)
+#stargazer(Final_model, 
+          #title="Final Model Regression Results", type="text", 
+          #df=FALSE, digits=3,star.cutoffs = NA,notes = NULL)
+
+kbl(broom::tidy(Final_model)[,], caption = "Summary Table of Final Model ", 
+      digits = 3, format = "markdown", align = "ccccc", padding= 3) 
+
+```
+
+The final model fitted above, had all the variables significant. The results indicate that for every additional year increase in the age of an individual, the health insurance charge increase by about 254.05 dollars. The insurance charges increases by approximately 295.17 dollars with a 1kg/m^2 increase in the individual's BMI. Smoking increases the amount of health insurance fee by about $24203.62. Finally, for an additional child as a dependent increases the health insurance charge by 540.34 dollars.\
+
+## modeling checking
+
+The multiple linear regression should be under the following assumptions:
+
+1. $\varepsilon_i \sim N(0, \sigma^2)$ where $\varepsilon_i = y_i|x - \mu_{Y|x}$
+2. $\varepsilon_i$ occur independently
+3. As a result, the random observations $Y_i$ can be modeled as $Y_i|x \sim N(x \beta, \sigma^2)$
+
+
+
+```{r,message=FALSE, warning=FALSE,echo=FALSE, fig.dim=c(8, 3),echo=FALSE}
+train_set$res <- Final_model$residuals
+train_set$fit <- Final_model$fitted.values
+
+hist <- ggplot(train_set)+
+  geom_histogram(aes(x=res, y=..density..),
+                 fill='thistle2',
+                 colour='black',
+                 bins=20)+
+  labs(x='Residuals', y='Density',
+       title='Model Residuals')+
+  theme_classic()
+
+qq <- ggplot(train_set, aes(sample=res))+
+  geom_qq()+
+  geom_qq_line()+
+  labs(x='N(0, 1) Percentiles',
+       y='Residual Percentiles', 
+       title='Normal QQ Plot of Residuals')+
+  theme_light()
+
+grid.arrange(hist, qq, nrow=1)
+```
+
+
+```{r, fig.dim=c(3.5, 2.5), fig.align='center',echo=FALSE}
+ggplot(train_set, aes(x=charges, y=res))+
+  geom_point()+
+  geom_hline(yintercept=0, 
+             colour='red',
+             lty=2)+
+  labs(x='response',
+       y='Residuals')+
+  theme_light()
+
+```
+
+
+By the model checking, we found that there is no pattern for the residual plot, so the constant variance is ok. And the mean of the residual is zero. The normal QQ plot behaves not like a straight line, so normality is a bit violated. By the above scatter plot, linear relationship is good and there is no curve pattern. So the linear model is good. And there are some outliers from the normal QQ plot. And there are some influential points. These points will be exlplained rather than deleting if these points are valid.\
+
+## modeling validation
+
+The coefficients for the testing model is very similar to the training model.\
+```{r,echo=FALSE}
+library(MASS)
+Final_model2<- lm(charges~age+bmi+children+smoker,data=test_set)
+kbl(broom::tidy(Final_model2)[,], caption = "Summary Table of Validation Model ", digits = 3, format = "markdown", align = "ccccc", padding= 3) 
+
+#stargazer(Final_model2, 
+        #  title="Final Model Validation Results", type="text", 
+          #df=FALSE, digits=3,star.cutoffs = NA,notes = NULL)
+```
+
+
+
+```{r,message=FALSE, warning=FALSE,echo=FALSE, fig.dim=c(8, 3),echo=FALSE}
+test_set$res <- Final_model2$residuals
+test_set$fit <- Final_model2$fitted.values
+
+hist <- ggplot(test_set)+
+  geom_histogram(aes(x=res, y=..density..),
+                 fill='thistle2',
+                 colour='black',
+                 bins=20)+
+  labs(x='Residuals', y='Density',
+       title='Model Residuals')+
+  theme_classic()
+
+qq <- ggplot(test_set, aes(sample=res))+
+  geom_qq()+
+  geom_qq_line()+
+  labs(x='N(0, 1) Percentiles',
+       y='Residual Percentiles', 
+       title='Normal QQ Plot of Residuals')+
+  theme_light()
+
+grid.arrange(hist, qq, nrow=1)
+```
+
+
+```{r, fig.dim=c(3.5, 2.5), fig.align='center',echo=FALSE}
+ggplot(test_set, aes(x=charges, y=res))+
+  geom_point()+
+  geom_hline(yintercept=0, 
+             colour='red',
+             lty=2)+
+  labs(x='response',
+       y='Residuals')+
+  theme_light()
+
+```
+The model checking plot is quite similar to the plot of the training model.\
+
+
+
+
+
+# DISCUSSION
+
+## conclusion
+
+Based on the results above, it was found that the variables; age, BMI, smoking status and the number of children significantly help in determining the amount of personal health insurance charges. These factors had a positive impact on the amount of payments. The study notes that the health insurance charges increase with an additional year in the age of a primary beneficiary of health insurance. This could be because as a person become older, they get closer to their life expectancy and the risk taken by the insurer also increases, thus an increase in the charges. As the body mass index increases, it results in higher insurance charges. The main reason is that BMI helps indicate an individual's health status. A person with a higher BMI stands at a higher risk for diseases; therefore has to make regular visits to the hospitals for weight-related issues.
+
+Personal health insurance charges was much higher for individuals who smoke than for non-smoking beneficiaries. This could be attributed to the belief that smokers are more likely to develop health issues, thus resulting in more risk for the insurer. Furthermore, a higher number of dependents (children) leads to higher health insurance charges because the number of individuals to be covered increases hence greater risk for the insurance company. This study helped create balanced criteria for determining the fair amount for both the insurer and the insured. This is because when individuals are charged based on the risk helps ensure that the money paid out will not exceed the money paid in.
+
+In practical meaning: Insurance costs will be lower for young people because they are less likely to get sick and have accidents. As you get older, the cost of insurance increases because insurance companies think older people are more likely to get sick and have accidents. Insurance costs for smokers will also increase because smoking is prone to cardiovascular and cerebrovascular diseases. This will increase the probability of insurance compensation, and the corresponding insurance amount will also increase. 
+People with a higher BMI also lead to larger insurance amounts. Because BMI is an important indicator of physical health. The higher the BMI, the more obese the person will be. In this way, there will be more diseases caused by obesity. This will undoubtedly increase the amount of insurance.
+
+## limitation
+
+The first limitation is that there are some outliers which are observed from the normal QQ plot. In the future, the model improve the performance of the model by replacing or eliminating the outliers for non-smokers. And after the outliers are removed, the QQ plot will be better. The second limitation is that our model may not be the best models. In the future, the transformation may be considered and more models could be compared.\
+
+
+
+
+
+\newpage
+
+
+# Appendix A
+
+All the data statistics table.\
+
+
+```{r,echo=FALSE,meassage=FALSE,warning=FALSE}
+
+
+library(tableone)
+# all data as continuous
+CreateTableOne(data=data)
+
+
+```
+
+\newpage
+
+
+# Appendix B
+
+More EDA results.\
+
+```{r,echo=FALSE,meassage=FALSE,warning=FALSE}
+hist1 <- ggplot(data=data, aes(x=age)) + geom_histogram(color="black", fill="red", bins=20) + labs(x="age distribution")
+hist2 <- ggplot(data=data, aes(x=bmi)) + geom_histogram(color="black", fill="yellow", bins=20) + labs(x="BMI distribution")
+hist3 <- ggplot(data=data, aes(x=charges)) + geom_histogram(color="black", fill="blue", bins=20) + labs(x="charge distribution")
+grid.arrange(hist1, hist2, hist3, nrow=3, ncol=1)
+```
+
+
+```{r, fig.height=5, ,echo=FALSE,meassage=FALSE,warning=FALSE,fig.cap="age distribution in different regions and sex"}
+#plot
+data%>%
+ggplot(aes(x =region, y =age, fill = sex,color=sex)) + geom_point(pch = 25)+theme_minimal()
+
+
+```
+
+
+
+\newpage
+
+
+# Appendix C
+
+Correlation results.\
+
+```{r,echo=FALSE,meassage=FALSE,warning=FALSE}
+
+mycor <- function(data){
+#------------ put histograms on the diagonal -----------------
+panel.hist <- function(x, ...){
+usr <- par("usr"); on.exit(par(usr)) 
+par(usr = c(usr[1:2], 0, 1.5) )
+h <- hist(x, plot = FALSE)
+breaks <- h$breaks; nB <- length(breaks)
+y <- h$counts; y <- y/max(y)
+rect(breaks[-nB], 0, breaks[-1], y, col="lavender", ...)
+}
+panel.cor <- function(x, y, digits=4, prefix="", cex.cor, ...){
+usr <- par("usr");
+on.exit(par(usr))
+par(usr = c(0, 1, 0, 1))
+txt1 <- format( cor(x,y), digits=digits )
+txt2 <- format(cor.test(x,y)$p.value, digits=digits)
+text(0.5,0.5, paste("r=",txt1, "\n P.val=",txt2), cex=0.8) 
+}
+#----------- put correlations & P-value & 0.95 CIs on the lower panels ---------------- #
+pairs(data, lower.panel=panel.cor, cex =0.7, pch = 21, bg="steelblue",diag.panel=panel.hist, cex.labels = 1.1, font.labels=0.9, upper.panel=panel.smooth)
+}
+
+data1=data[,c(1,3,4,7)]
+mycor(data1)
+
+
+
+```
+
+\newpage
+
+# References
